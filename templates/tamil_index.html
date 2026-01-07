@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tamil Word2Vec Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Simple Keyboard CDN -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css"
+  />
+  <script
+    src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js">
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #eef2f7, #dbeafe);
+      color: #1f2937;
+    }
+
+    .logo-header {
+      width: 100%;
+      background: #7c2d12;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 12px 10px;
+    }
+
+    .logo-header img {
+      width: 100%;
+      max-width: 1200px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    header {
+      background: #7c2d12;
+      color: #fff;
+      padding: 16px;
+      text-align: center;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #7c2d12;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    input {
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #fed7aa;
+      flex: 1;
+    }
+
+    input[type="number"] {
+      max-width: 150px;
+    }
+
+    button {
+      background: #ea580c;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 22px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #c2410c;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    th {
+      background: #fff7ed;
+      color: #7c2d12;
+    }
+
+    .plot img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="logo-header">
+  <img src="{{ url_for('static', filename='logo.jpg') }}" alt="App Logo">
+</div>
+
+<header>
+  <h1>Tamil Word2Vec Explorer</h1>
+  <p>Semantic Similarity · Tamil Keyboard · PCA Visualization</p>
+</header>
+
+<main>
+
+  <!-- INPUT -->
+  <div class="card">
+    <h2>🔤 Enter Tamil Word</h2>
+
+    <form method="POST">
+      <div class="form-row">
+        <input
+          id="input"
+          name="word"
+          placeholder="தமிழ் சொல் உள்ளிடவும்"
+          required
+          oninput="window.keyboard_toggle.setInput(this.value)"
+          onkeydown="handlePhysicalBackspace(event)"
+        />
+
+        <input type="number" name="topn" value="5" min="1" required />
+
+        <button type="submit">Find Similar</button>
+        <button type="button" onclick="clearInput()" style="background:#6b7280;">
+          Clear
+        </button>
+      </div>
+    </form>
+
+    <div class="simple-keyboard"></div>
+  </div>
+
+  <!-- INFO -->
+  <div class="card">
+    <h2>ℹ️ How This Works</h2>
+
+    <p><strong>Word Similarity:</strong><br>
+    This application uses a <em>Word2Vec</em> model trained on large Tamil text data.
+    Each word is represented as a numerical vector in high-dimensional space.</p>
+
+    <p><strong>Similarity Score:</strong><br>
+    When you enter a word, the model computes <em>cosine similarity</em> between the input
+    word and all other words in the vocabulary.
+    The closer the score is to <strong>1.0</strong>, the more semantically similar the words are.</p>
+
+    <p><strong>Why Similar Words Appear:</strong><br>
+    Words that occur in similar contexts (for example, places, emotions, actions)
+    tend to have similar vector representations. This allows the model to capture
+    semantic meaning beyond exact spelling.</p>
+
+    <p><strong>PCA Visualization:</strong><br>
+    The model vectors are originally hundreds of dimensions.
+    <em>Principal Component Analysis (PCA)</em> reduces them to 2 dimensions so that
+    relationships between words can be visualized on a 2D graph.</p>
+
+    <p><strong>Graph Interpretation:</strong><br>
+    The input word is shown in <strong>red</strong>, and related words are shown in
+    <strong>blue</strong>. Words plotted closer together are more semantically related
+    according to the model.</p>
+  </div>
+
+  <!-- RESULTS -->
+  {% if result %}
+    <div class="card">
+      <h2>📊 Results</h2>
+
+      {% if result == "Word not found in vocabulary." %}
+        <p style="color:#dc2626;font-weight:600">{{ result }}</p>
+      {% else %}
+        <table>
+          <tr>
+            <th>Word</th>
+            <th>Similarity</th>
+          </tr>
+          {% for w, s in result %}
+          <tr>
+            <td>{{ w }}</td>
+            <td>{{ s }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if image %}
+    <div class="card plot">
+      <h2>📈 PCA Visualization</h2>
+      <img src="data:image/png;base64,{{ image }}" alt="PCA Plot">
+    </div>
+  {% endif %}
+
+</main>
+
+<footer>
+  Tamil NLP · Word2Vec · Flask
+</footer>
+
+<script>
+  const Keyboard = window.SimpleKeyboard.default;
+
+  window.keyboard_toggle = new Keyboard(".simple-keyboard", {
+    onChange: input => {
+      document.getElementById("input").value = input;
+    },
+    layout: {
+      default: [
+        "அ ஆ இ ஈ உ ஊ எ ஏ ஐ ஒ ஓ ஔ {bksp}",
+        "க ங ச ஞ ட ண த ந ப ம",
+        "ய ர ல வ ழ ள ற ன",
+        "ா ி ீ ு ூ ெ ே ை ொ ோ ௌ ்",
+        "{space} {enter}"
+      ]
+    },
+    display: {
+      "{bksp}": "⌫",
+      "{space}": "Space",
+      "{enter}": "Enter"
+    }
+  });
+
+  function handlePhysicalBackspace(e) {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      const i = document.getElementById("input");
+      i.value = i.value.slice(0, -1);
+      keyboard_toggle.setInput(i.value);
+    }
+  }
+
+  function clearInput() {
+    document.getElementById("input").value = "";
+    keyboard_toggle.setInput("");
+  }
+</script>
+
+</body>
+</html>
